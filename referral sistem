@@ -3,7 +3,7 @@
 require_once("../funcphp/GetDataUser.php");
 
 $permitted_chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-function generate_string($input, $strength = 16) {
+function generate_string($input, $strength = 16) { //генерация кода
     $input_length = strlen($input);
     $random_string = '';
     for($i = 0; $i < $strength; $i++) {
@@ -16,14 +16,14 @@ if (htmlspecialchars($_POST["check"] === "1")){
     $code_gen = generate_string($permitted_chars, "12");
     $conn = conn();
     $id = get_id();
-    $sql_is_code = $conn->prepare("SELECT code FROM users WHERE id = ?");
+    $sql_is_code = $conn->prepare("SELECT code FROM users WHERE id = ?"); //проверяем существует ли код
     $sql_is_code->bind_param("s", $id);
     if ($sql_is_code->execute()) {
         $result_check = $sql_is_code->get_result();
         $code_check = $result_check->fetch_assoc();
         $code_check = $code_check["code"];
-        if ($code_check == "") {
-            $sql_check_code = $conn->prepare("SELECT code FROM users");
+        if ($code_check == "") { 
+            $sql_check_code = $conn->prepare("SELECT code FROM users"); // проверка существует ли уже аналогичный код
             if($sql_check_code->execute()){
                 $result = $sql_check_code->get_result();
                 if($result->num_rows > 0){
@@ -33,7 +33,7 @@ if (htmlspecialchars($_POST["check"] === "1")){
                             $code_gen = generate_string($permitted_chars, "12");
                         }
                     }
-                    $sql_give_code = $conn->prepare("UPDATE users SET code = ? WHERE id = ?");
+                    $sql_give_code = $conn->prepare("UPDATE users SET code = ? WHERE id = ?"); //даем код, если его нет
                     $sql_give_code->bind_param("ss", $code_gen, $id);
                     if ($sql_give_code->execute()){
                         $answer = [
@@ -43,7 +43,7 @@ if (htmlspecialchars($_POST["check"] === "1")){
                     } else {
                         $answer = [
                             'success' => false,
-                            'answer' => 'undefined'
+                            'answer' => 'undefined' //ошибка обращения к бд
                         ];
                     }
                 } else {
@@ -61,7 +61,7 @@ if (htmlspecialchars($_POST["check"] === "1")){
         } else {
             $answer = [
                 'success' => false,
-                'answer' => 'thereis',
+                'answer' => 'thereis',//код у этого юзера уже существует 
                 "code" => $code_check
             ];
         }
@@ -71,7 +71,7 @@ if (htmlspecialchars($_POST["check"] === "1")){
             'answer' => 'undefined'
         ];
     }
-    echo json_encode($answer);
+    echo json_encode($answer);//json ответ обратно в ajax
     $conn->close();
     exit();
 }
