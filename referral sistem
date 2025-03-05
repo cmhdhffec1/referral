@@ -1,0 +1,78 @@
+//реферальная система для платформы, которая генерирует код (или подгружает) при заходе на страницу
+<?php
+require_once("../funcphp/GetDataUser.php");
+
+$permitted_chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function generate_string($input, $strength = 16) {
+    $input_length = strlen($input);
+    $random_string = '';
+    for($i = 0; $i < $strength; $i++) {
+        $random_character = $input[mt_rand(0, $input_length - 1)];
+        $random_string .= $random_character;
+    }
+    return $random_string;
+}
+if (htmlspecialchars($_POST["check"] === "1")){
+    $code_gen = generate_string($permitted_chars, "12");
+    $conn = conn();
+    $id = get_id();
+    $sql_is_code = $conn->prepare("SELECT code FROM users WHERE id = ?");
+    $sql_is_code->bind_param("s", $id);
+    if ($sql_is_code->execute()) {
+        $result_check = $sql_is_code->get_result();
+        $code_check = $result_check->fetch_assoc();
+        $code_check = $code_check["code"];
+        if ($code_check == "") {
+            $sql_check_code = $conn->prepare("SELECT code FROM users");
+            if($sql_check_code->execute()){
+                $result = $sql_check_code->get_result();
+                if($result->num_rows > 0){
+                    while ($code_row = $result->fetch_assoc()){
+                        $code = $code_row["code"];
+                        while($code === $code_gen){
+                            $code_gen = generate_string($permitted_chars, "12");
+                        }
+                    }
+                    $sql_give_code = $conn->prepare("UPDATE users SET code = ? WHERE id = ?");
+                    $sql_give_code->bind_param("ss", $code_gen, $id);
+                    if ($sql_give_code->execute()){
+                        $answer = [
+                            'success' => true,
+                            'answer' => 'success'
+                        ];
+                    } else {
+                        $answer = [
+                            'success' => false,
+                            'answer' => 'undefined'
+                        ];
+                    }
+                } else {
+                    $answer = [
+                        'success' => false,
+                        'answer' => 'undefined'
+                    ];
+                }   
+            } else {
+                $answer = [
+                    'success' => false,
+                    'answer' => 'undefined'
+                ];
+            }
+        } else {
+            $answer = [
+                'success' => false,
+                'answer' => 'thereis',
+                "code" => $code_check
+            ];
+        }
+    } else {
+        $answer = [
+            'success' => false,
+            'answer' => 'undefined'
+        ];
+    }
+    echo json_encode($answer);
+    $conn->close();
+    exit();
+}
+?>
